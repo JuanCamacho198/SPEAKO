@@ -145,7 +145,14 @@ body,
   overflow-y: auto;
 }
 
-/* ─── Textarea ───────────────────────────────────────────────────────── */
+/* ─── Transcript output ──────────────────────────────────────────────── */
+.transcript-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .text-input {
   width: 100%;
   resize: none;
@@ -167,8 +174,36 @@ body,
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+.text-input--listening {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
 .text-input::placeholder {
   color: var(--text-muted);
+}
+
+/* Interim (partial) transcript */
+.interim-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 12px;
+  background: var(--bg-surface);
+  border-radius: 6px;
+  border: 1px dashed var(--border);
+  line-height: 1.5;
+  min-height: 26px;
+}
+
+/* Error banner */
+.error-banner {
+  background: rgba(224, 92, 92, 0.12);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 12px;
+  padding: 7px 10px;
 }
 
 /* ─── Waveform ───────────────────────────────────────────────────────── */
@@ -177,7 +212,7 @@ body,
   align-items: center;
   justify-content: center;
   gap: 4px;
-  height: 24px;
+  height: 28px;
 }
 
 .waveform-bar {
@@ -191,6 +226,30 @@ body,
 .waveform--active .waveform-bar {
   background: var(--accent);
   box-shadow: 0 0 6px var(--accent-glow);
+  animation: bar-bounce 0.6s ease-in-out infinite alternate;
+}
+
+.waveform--active .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+.waveform--active .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+.waveform--active .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+.waveform--active .waveform-bar:nth-child(5) { animation-delay: 0.2s; }
+.waveform--active .waveform-bar:nth-child(6) { animation-delay: 0.1s; }
+
+@keyframes bar-bounce {
+  from { transform: scaleY(0.4); }
+  to   { transform: scaleY(1.0); }
+}
+
+.listening-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--accent);
+  margin-left: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* ─── Controls panel (animated collapse) ────────────────────────────── */
@@ -322,8 +381,8 @@ body,
   opacity: 1;
 }
 
-/* Speaking state pulse */
-.btn--speaking {
+/* Speaking/listening state pulse */
+.btn--listening {
   background: linear-gradient(135deg, #5a4fd4, #7c6af7);
   animation: btn-pulse 1.4s ease-in-out infinite;
 }
@@ -333,7 +392,7 @@ body,
   50%       { box-shadow: 0 0 0 8px transparent; }
 }
 
-.btn-speaking-label {
+.btn-listening-label {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -370,4 +429,32 @@ body,
   color: var(--text-muted);
   text-align: center;
   opacity: 0.7;
+}
+
+/* ─── Toggle button (Continuous mode) ───────────────────────────────── */
+.toggle-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  letter-spacing: 0.05em;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease),
+              border-color 0.15s var(--ease);
+}
+
+.toggle-btn--on {
+  background: rgba(124, 106, 247, 0.2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.toggle-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex: 1;
 }

@@ -1,24 +1,35 @@
-interface TextInputProps {
+interface TranscriptOutputProps {
   value: string;
+  interim: string;
   onChange: (text: string) => void;
-  onSpeak: () => void;
+  isListening: boolean;
 }
 
-export function TextInput({ value, onChange, onSpeak }: TextInputProps) {
+export function TranscriptOutput({
+  value,
+  interim,
+  onChange,
+  isListening,
+}: TranscriptOutputProps) {
   return (
-    <textarea
-      className="text-input"
-      placeholder="Escribe aquí para reproducir..."
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-          e.preventDefault();
-          onSpeak();
+    <div className="transcript-wrapper">
+      <textarea
+        className={`text-input${isListening ? " text-input--listening" : ""}`}
+        placeholder={
+          isListening
+            ? "Escuchando... habla ahora"
+            : "El texto reconocido aparecerá aquí. Puedes editarlo libremente."
         }
-      }}
-      rows={4}
-      autoFocus
-    />
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={5}
+        spellCheck
+      />
+      {interim && (
+        <div className="interim-text" aria-live="polite">
+          {interim}
+        </div>
+      )}
+    </div>
   );
 }

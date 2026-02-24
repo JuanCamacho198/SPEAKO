@@ -1,66 +1,86 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { TextInput } from "./components/TextInput";
-import { VoiceControls } from "./components/VoiceControls";
-import { speak, stop } from "./components/SpeechEngine";
+import { TranscriptOutput } from "./components/TextInput";
+import { RecognitionControls } from "./components/VoiceControls";
+import { SpeechEngine, isSTTSupported } from "./components/SpeechEngine";
 import logoUrl from "./assets/logo.svg";
 import "./App.css";
 
 export default function App() {
-  const [text, setText] = useState("");
-  const [rate, setRate] = useState(1.0);
-  const [pitch, setPitch] = useState(1.0);
-  const [voiceURI, setVoiceURI] = useState("");
-  const [speaking, setSpeaking] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [interim, setInterim] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [lang, setLang] = useState("es-ES");
+  const [continuous, setContinuous] = useState(false);
   const [showControls, setShowControls] = useState(false);
-  const [bars, setBars] = useState([0.3, 0.5, 1, 0.7, 1, 0.5, 0.3]);
-  const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Animate waveform bars while speaking
-  useEffect(() => {
-    if (speaking) {
-      animRef.current = setInterval(() => {
-        setBars([
-          0.2 + Math.random() * 0.6,
-          0.4 + Math.random() * 0.6,
-          0.5 + Math.random() * 0.5,
-          0.6 + Math.random() * 0.4,
-          0.5 + Math.random() * 0.5,
-          0.4 + Math.random() * 0.6,
-          0.2 + Math.random() * 0.6,
-        ]);
-      }, 120);
-    } else {
-      if (animRef.current) clearInterval(animRef.current);
-      setBars([0.3, 0.5, 1, 0.7, 1, 0.5, 0.3]);
+  const engineRef = useRef<SpeechEngine | null>(null);
+
+  const startListening = useCallback(() => {
+    if (!isSTTSupported()) {
+      setError("SpeechRecognition no está soportado en este entorno.");
+      return;
     }
-    return () => {
-      if (animRef.current) clearInterval(animRef.current);
-    };
-  }, [speaking]);
 
-  function handleSpeak() {
-    if (!text.trim()) return;
-    speak(text, { rate, pitch, volume: 1, voiceURI });
-    setSpeaking(true);
-    // Poll speechSynthesis.speaking as a reliable "done" signal
-    const poll = setInterval(() => {
-      if (!window.speechSynthesis.speaking) {
-        setSpeaking(false);
-        clearInterval(poll);
+    setError(null);
+    setInterim("");
+
+    const engine = new SpeechEngine(
+      { lang, continuous, interimResults: true },
+      {
+        onInterim: (text) => setInterim(text),
+        onFinal: (text) => {
+          setTranscript((prev) => {
+            const separator = prev.length > 0 && !prev.endsWith(" ") ? " " : "";
+            return prev + separator + text;
+          });
+          setInterim("");
+        },
+        onError: (msg) => {
+          setError(msg);
+          setIsListening(false);
+          setInterim("");
+        },
+        onEnd: () => {
+          setIsListening(false);
+          setInterim("");
+        },
       }
-    }, 300);
+    );
+
+    engineRef.current = engine;
+    engine.start();
+    setIsListening(true);
+  }, [lang, continuous]);
+
+  const stopListening = useCallback(() => {
+    engineRef.current?.stop();
+    setIsListening(false);
+    setInterim("");
+  }, []);
+
+  function handleClear() {
+    stopListening();
+    setTranscript("");
+    setInterim("");
+    setError(null);
   }
 
-  function handleStop() {
-    stop();
-    setSpeaking(false);
+  function handleCopy() {
+    if (transcript.trim()) {
+      navigator.clipboard.writeText(transcript).catch(() => {});
+    }
   }
 
   function handleClose() {
     invoke("hide_window").catch(() => {});
   }
 
+  // Waveform bar heights — animated while listening
+  const bars = isListening
+    ? [0.4, 0.7, 1, 0.6, 1, 0.7, 0.4]
+    : [0.2, 0.3, 0.4, 0.3, 0.4, 0.3, 0.2];
   const BAR_MAX_H = 20;
 
   return (
@@ -69,28 +89,44 @@ export default function App() {
       <div className="titlebar" data-tauri-drag-region>
         <div className="titlebar-left" data-tauri-drag-region>
           <img src={logoUrl} className="titlebar-logo" alt="" />
-          <span className="titlebar-title" data-tauri-drag-region>Speako</span>
+          <span className="titlebar-title" data-tauri-drag-region>
+            Speako
+          </span>
         </div>
         <div className="titlebar-actions">
           <button
             className={`icon-btn${showControls ? " active" : ""}`}
-            title="Ajustes de voz"
+            title="Ajustes de reconocimiento"
             onClick={() => setShowControls((s) => !s)}
           >
             ⚙
           </button>
-          <button className="icon-btn close-btn" onClick={handleClose} title="Cerrar">
+          <button
+            className="icon-btn"
+            title="Copiar texto"
+            onClick={handleCopy}
+            disabled={!transcript.trim()}
+          >
+            ⎘
+          </button>
+          <button
+            className="icon-btn"
+            title="Limpiar"
+            onClick={handleClear}
+            disabled={!transcript && !isListening}
+          >
             ✕
+          </button>
+          <button className="icon-btn close-btn" onClick={handleClose} title="Ocultar">
+            —
           </button>
         </div>
       </div>
 
       {/* Main content */}
       <div className="content">
-        <TextInput value={text} onChange={setText} onSpeak={handleSpeak} />
-
         {/* Waveform visualizer */}
-        <div className={`waveform${speaking ? " waveform--active" : ""}`}>
+        <div className={`waveform${isListening ? " waveform--active" : ""}`}>
           {bars.map((h, i) => (
             <div
               key={i}
@@ -98,45 +134,67 @@ export default function App() {
               style={{ height: `${h * BAR_MAX_H}px` }}
             />
           ))}
+          {isListening && (
+            <span className="listening-label">
+              <span className="dot" />
+              Escuchando...
+            </span>
+          )}
         </div>
 
-        {/* Collapsible voice controls */}
+        {/* Error banner */}
+        {error && <div className="error-banner">{error}</div>}
+
+        {/* Transcript output */}
+        <TranscriptOutput
+          value={transcript}
+          interim={interim}
+          onChange={setTranscript}
+          isListening={isListening}
+        />
+
+        {/* Collapsible recognition controls */}
         <div className={`controls-panel${showControls ? " controls-panel--open" : ""}`}>
-          <VoiceControls
-            rate={rate}
-            pitch={pitch}
-            voiceURI={voiceURI}
-            onRateChange={setRate}
-            onPitchChange={setPitch}
-            onVoiceChange={setVoiceURI}
+          <RecognitionControls
+            lang={lang}
+            continuous={continuous}
+            onLangChange={(l) => {
+              setLang(l);
+              if (isListening) {
+                stopListening();
+              }
+            }}
+            onContinuousChange={setContinuous}
           />
         </div>
 
+        {/* Action buttons */}
         <div className="actions">
           <button
-            className={`btn btn-primary${speaking ? " btn--speaking" : ""}`}
-            onClick={handleSpeak}
-            disabled={!text.trim() || speaking}
+            className={`btn btn-primary${isListening ? " btn--listening" : ""}`}
+            onClick={isListening ? stopListening : startListening}
           >
-            {speaking ? (
-              <span className="btn-speaking-label">
+            {isListening ? (
+              <span className="btn-listening-label">
                 <span className="dot" />
-                Reproduciendo
+                Detener
               </span>
             ) : (
-              "▶ Reproducir"
+              "🎤 Grabar"
             )}
           </button>
           <button
             className="btn btn-secondary"
-            onClick={handleStop}
-            disabled={!speaking}
+            onClick={handleClear}
+            disabled={!transcript && !isListening}
           >
-            ■ Detener
+            Limpiar
           </button>
         </div>
 
-        <p className="hint">Ctrl+Enter para reproducir</p>
+        <p className="hint">
+          {isListening ? "Habla claramente hacia el micrófono" : "Pulsa Grabar para empezar"}
+        </p>
       </div>
     </div>
   );
