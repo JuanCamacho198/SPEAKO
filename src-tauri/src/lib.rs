@@ -1,15 +1,17 @@
+use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, Runtime,
+    Manager,
 };
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 use tauri_plugin_autostart::MacosLauncher;
 
-#[derive(Clone, serde::Serialize)]
-struct AlwaysOnTopState {
-    enabled: bool,
+/// Shared app state so menu-event handlers can update menu item labels.
+struct AppState {
+    always_on_top_item: Mutex<MenuItem<tauri::Wry>>,
+    autostart_item: Mutex<MenuItem<tauri::Wry>>,
 }
 
 #[tauri::command]
@@ -29,18 +31,16 @@ fn hide_window(window: tauri::Window) -> Result<(), String> {
 }
 
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
-            #[cfg(not(any(target_os = "android", target_os = "ios")))]
-            {
-                use tauri_plugin_autostart::ManagerExt;
-                let _ = app.plugin(tauri_plugin_autostart::init(
-                    MacosLauncher::LaunchAgent,
-                    None,
-                ));
-            }
+    let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
 
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    let builder = builder.plugin(tauri_plugin_autostart::init(
+        MacosLauncher::LaunchAgent,
+        None,
+    ));
+
+    builder
+        .setup(|app| {
             let show_hide =
                 MenuItem::with_id(app, "show_hide", "Mostrar / Ocultar", true, None::<&str>)?;
             let always_on_top = MenuItem::with_id(
@@ -61,7 +61,13 @@ pub fn run() {
 
             let menu = Menu::with_items(app, &[&show_hide, &always_on_top, &autostart, &quit])?;
 
-            let _tray = TrayIconBuilder::new()
+            // Store menu items in state so event handlers can update their labels.
+            app.manage(AppState {
+                always_on_top_item: Mutex::new(always_on_top),
+                autostart_item: Mutex::new(autostart),
+            });
+
+            let _tray = TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .tooltip("Speako")
@@ -85,6 +91,8 @@ pub fn run() {
                 })
                 .on_menu_event(|app, event| {
                     let window = app.get_webview_window("main").unwrap();
+                    let state = app.state::<AppState>();
+
                     match event.id.as_ref() {
                         "show_hide" => {
                             if window.is_visible().unwrap_or(false) {
@@ -98,48 +106,34 @@ pub fn run() {
                             let current = window.is_always_on_top().unwrap_or(true);
                             let next = !current;
                             let _ = window.set_always_on_top(next);
-                            if let Some(tray) = app.tray_by_id("main") {
-                                if let Some(menu) = tray.menu() {
-                                    let label = if next {
-                                        "Siempre visible: ON"
-                                    } else {
-                                        "Siempre visible: OFF"
-                                    };
-                                    if let Some(item) = menu.get("always_on_top") {
-                                        use tauri::menu::MenuItemKind;
-                                        if let MenuItemKind::MenuItem(mi) = item {
-                                            let _ = mi.set_text(label);
-                                        }
-                                    }
-                                }
+                            let label = if next {
+                                "Siempre visible: ON"
+                            } else {
+                                "Siempre visible: OFF"
+                            };
+                            if let Ok(item) = state.always_on_top_item.lock() {
+                                let _ = item.set_text(label);
                             }
                         }
                         "autostart" => {
                             #[cfg(not(any(target_os = "android", target_os = "ios")))]
                             {
                                 use tauri_plugin_autostart::ManagerExt;
-                                let autostart_manager = app.autolaunch();
-                                let enabled = autostart_manager.is_enabled().unwrap_or(false);
+                                let mgr = app.autolaunch();
+                                let enabled = mgr.is_enabled().unwrap_or(false);
                                 if enabled {
-                                    let _ = autostart_manager.disable();
+                                    let _ = mgr.disable();
                                 } else {
-                                    let _ = autostart_manager.enable();
+                                    let _ = mgr.enable();
                                 }
-                                let enabled_after = autostart_manager.is_enabled().unwrap_or(false);
-                                if let Some(tray) = app.tray_by_id("main") {
-                                    if let Some(menu) = tray.menu() {
-                                        let label = if enabled_after {
-                                            "Iniciar con Windows: ON"
-                                        } else {
-                                            "Iniciar con Windows: OFF"
-                                        };
-                                        if let Some(item) = menu.get("autostart") {
-                                            use tauri::menu::MenuItemKind;
-                                            if let MenuItemKind::MenuItem(mi) = item {
-                                                let _ = mi.set_text(label);
-                                            }
-                                        }
-                                    }
+                                let after = mgr.is_enabled().unwrap_or(false);
+                                let label = if after {
+                                    "Iniciar con Windows: ON"
+                                } else {
+                                    "Iniciar con Windows: OFF"
+                                };
+                                if let Ok(item) = state.autostart_item.lock() {
+                                    let _ = item.set_text(label);
                                 }
                             }
                         }
