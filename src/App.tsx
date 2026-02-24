@@ -10,14 +10,19 @@ export default function App() {
   const [transcript, setTranscript] = useState("");
   const [interim, setInterim] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [lang, setLang] = useState("es-ES");
+  // Default language for STT
+  const [lang, setLang] = useState("es-MX");
   const [continuous, setContinuous] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const engineRef = useRef<SpeechEngine | null>(null);
+  // Track if user manually stopped listening (to distinguish from auto-end in continuous mode)
+  const manualStopRef = useRef(false);
 
   const startListening = useCallback(() => {
+    // Reset manual stop flag for a fresh run
+    manualStopRef.current = false;
     if (!isSTTSupported()) {
       setError("SpeechRecognition no está soportado en este entorno.");
       return;
@@ -43,8 +48,14 @@ export default function App() {
           setInterim("");
         },
         onEnd: () => {
+          // End of recognition cycle
           setIsListening(false);
           setInterim("");
+          // If continuous mode isEnabled, restart automatically unless user stopped explicitly
+          if (continuous && !manualStopRef.current) {
+            engineRef.current?.start();
+            setIsListening(true);
+          }
         },
       }
     );
@@ -55,6 +66,8 @@ export default function App() {
   }, [lang, continuous]);
 
   const stopListening = useCallback(() => {
+    // Mark as manual stop to prevent auto-restart in onEnd
+    manualStopRef.current = true;
     engineRef.current?.stop();
     setIsListening(false);
     setInterim("");
