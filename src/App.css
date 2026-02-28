@@ -333,108 +333,51 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ─── Action buttons ─────────────────────────────────────────────────── */
+/* ─── Action buttons (Minimalist Mic) ────────────────────────────────── */
 .actions {
   display: flex;
-  gap: 8px;
-}
-
-.btn {
-  flex: 1;
-  padding: 9px 12px;
-  border: none;
-  border-radius: var(--radius);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s, background 0.15s var(--ease),
-              transform 0.12s var(--ease), box-shadow 0.2s var(--ease);
-  position: relative;
-  overflow: hidden;
-}
-
-.btn:disabled {
-  opacity: 0.38;
-  cursor: default;
-}
-
-.btn:not(:disabled):active {
-  transform: scale(0.96);
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-}
-
-.btn-primary:not(:disabled):hover {
-  background: var(--accent-hover);
-  box-shadow: 0 4px 16px var(--accent-glow);
-}
-
-/* Click ripple */
-.btn-primary::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.btn-primary:active::after {
-  opacity: 1;
-}
-
-/* Speaking/listening state pulse */
-.btn--listening {
-  background: linear-gradient(135deg, #5a4fd4, #7c6af7);
-  animation: btn-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes btn-pulse {
-  0%, 100% { box-shadow: 0 0 0 0   var(--accent-glow); }
-  50%       { box-shadow: 0 0 0 8px transparent; }
-}
-
-.btn-listening-label {
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 8px;
+  align-items: center;
+  margin-top: auto;
+  padding-bottom: 8px;
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
+.btn-mic {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: #fff;
-  animation: dot-blink 1s ease-in-out infinite;
-}
-
-@keyframes dot-blink {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(0.7); }
-}
-
-.btn-secondary {
   background: var(--bg-surface);
   color: var(--text);
   border: 1px solid var(--border);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.btn-secondary:not(:disabled):hover {
+.btn-mic:hover {
   background: var(--border);
-  border-color: #555577;
+  transform: scale(1.05);
 }
 
-/* ─── Hint ───────────────────────────────────────────────────────────── */
-.hint {
-  font-size: 11px;
-  color: var(--text-muted);
-  text-align: center;
-  opacity: 0.7;
+.btn-mic:active {
+  transform: scale(0.95);
+}
+
+/* Speaking/listening state pulse */
+.btn-mic--listening {
+  background: linear-gradient(135deg, #5a4fd4, #7c6af7);
+  color: white;
+  border-color: transparent;
+  animation: btn-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0   var(--accent-glow); transform: scale(1); }
+  50%       { box-shadow: 0 0 0 12px transparent; transform: scale(1.08); }
 }
 
 /* ─── Toggle button (Continuous mode) ───────────────────────────────── */
