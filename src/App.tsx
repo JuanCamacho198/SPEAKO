@@ -1,10 +1,9 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { TranscriptOutput } from "./components/TextInput";
 import { RecognitionControls } from "./components/VoiceControls";
 import { SpeechEngine, isSTTSupported } from "./components/SpeechEngine";
-import logoUrl from "./assets/logo.svg";
 import "./App.css";
 
 export default function App() {
@@ -18,10 +17,26 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   const [copied, setCopied] = useState(false);
+  const [isMiniMode, setIsMiniMode] = useState(false);
 
   const engineRef = useRef<SpeechEngine | null>(null);
   // Track if user manually stopped listening (to distinguish from auto-end in continuous mode)
   const manualStopRef = useRef(false);
+
+  // Auto-minimize after 10 seconds of inactivity (empty text and not listening)
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    if (!isListening && !transcript.trim() && !isMiniMode) {
+      timeoutId = setTimeout(() => {
+        toggleMiniMode();
+      }, 15000); // 15 seconds
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isListening, transcript, isMiniMode]);
 
   const startListening = useCallback(() => {
     // Reset manual stop flag for a fresh run
@@ -98,28 +113,58 @@ export default function App() {
     invoke("hide_window").catch(() => {});
   }
 
+  async function toggleMiniMode() {
+    const win = getCurrentWindow();
+    if (!isMiniMode) {
+      // Resize to a small square for the widget
+      await win.setSize(new LogicalSize(70, 70));
+      setIsMiniMode(true);
+    } else {
+      // Restore original size
+      await win.setSize(new LogicalSize(380, 420));
+      setIsMiniMode(false);
+    }
+  }
+
+  // Handle generic app drag
+  const handleAppDrag = (e: React.PointerEvent) => {
+    const target = e.target as HTMLElement;
+    const isInteractive = ['button', 'textarea', 'input', 'select', 'option'].includes(target.tagName.toLowerCase());
+    if (!isInteractive) {
+      getCurrentWindow().startDragging();
+    }
+  };
+
   // Waveform bar heights — animated while listening
   const bars = isListening
     ? [0.4, 0.7, 1, 0.6, 1, 0.7, 0.4]
     : [0.2, 0.3, 0.4, 0.3, 0.4, 0.3, 0.2];
   const BAR_MAX_H = 20;
 
-  return (
-    <div className="app" data-tauri-drag-region>
-      {/* Titlebar */}
+  if (isMiniMode) {
+    return (
       <div 
-        className="titlebar" 
-        data-tauri-drag-region 
-        onPointerDown={(e) => {
-          // Avoid dragging if a button inside the titlebar was clicked
-          if ((e.target as HTMLElement).tagName.toLowerCase() !== 'button') {
-            getCurrentWindow().startDragging();
-          }
-        }}
+        className={`app mini-mode ${isListening ? 'listening' : ''}`}
+        onPointerDown={handleAppDrag}
       >
-        <div className="titlebar-left" data-tauri-drag-region>
-          <img src={logoUrl} className="titlebar-logo" alt="" />
-          <span className="titlebar-title" data-tauri-drag-region>
+        <button 
+          className="mini-widget-btn" 
+          onClick={toggleMiniMode}
+          title="Expandir"
+        >
+          {isListening ? "🎤" : <img src="/logo.png" width={32} alt="logo" style={{borderRadius: '50%'}} />}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app" onPointerDown={handleAppDrag}>
+      {/* Titlebar */}
+      <div className="titlebar">
+        <div className="titlebar-left">
+          <img src="/logo.png" className="titlebar-logo" style={{borderRadius: '50%'}} alt="" />
+          <span className="titlebar-title">
             Speako
           </span>
         </div>
@@ -132,22 +177,17 @@ export default function App() {
             ⚙
           </button>
           <button
-            className={`icon-btn${copied ? " text-success" : ""}`}
-            title="Copiar texto"
-            onClick={handleCopy}
-            disabled={!transcript.trim()}
+            className="icon-btn"
+            title="Modo Mini Widget"
+            onClick={toggleMiniMode}
           >
-            {copied ? "✓" : "⎘"}
+            ↙
           </button>
           <button
-            className="icon-btn"
-            title="Limpiar"
-            onClick={handleClear}
-            disabled={!transcript && !isListening}
+            className="icon-btn close-btn" 
+            onClick={handleClose} 
+            title="Ocultar a la bandeja"
           >
-            ✕
-          </button>
-          <button className="icon-btn close-btn" onClick={handleClose} title="Ocultar">
             —
           </button>
         </div>
@@ -198,14 +238,32 @@ export default function App() {
           />
         </div>
 
-        {/* Minimalist Action Button */}
+        {/* Bottom Actions */}
         <div className="actions">
+          <button
+            className="btn-secondary"
+            onClick={handleClear}
+            disabled={!transcript && !isListening}
+            title="Borrar texto"
+          >
+            Limpiar
+          </button>
+
           <button
             className={`btn-mic${isListening ? " btn-mic--listening" : ""}`}
             onClick={isListening ? stopListening : startListening}
             title={isListening ? "Detener grabación" : "Iniciar grabación"}
           >
             {isListening ? "⏹" : "🎤"}
+          </button>
+
+          <button
+            className={`btn-copy ${copied ? "success" : ""}`}
+            title="Copiar texto"
+            onClick={handleCopy}
+            disabled={!transcript.trim()}
+          >
+            {copied ? "✓ ¡Copiado!" : "⎘ Copiar"}
           </button>
         </div>
       </div>

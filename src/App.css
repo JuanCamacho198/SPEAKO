@@ -44,11 +44,83 @@ body,
   overflow: hidden;
   user-select: none;
   animation: app-enter 0.25s var(--ease) both;
+  transition: all 0.3s var(--ease);
 }
+
+/* ─── Mini Mode ──────────────────────────────────────────────────────── */
+.app.mini-mode {
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--bg-surface);
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  cursor: pointer;
+}
+
+.mini-widget {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 24px;
+  color: var(--accent);
+  transition: transform 0.2s var(--ease);
+  /* Make the whole widget draggable natively */
+  -webkit-app-region: drag; 
+}
+
+.mini-widget:hover {
+  transform: scale(1.1);
+}
+
+.mini-widget.listening {
+  background: linear-gradient(135deg, #5a4fd4, #7c6af7);
+  color: white;
+  border-radius: 50%;
+  animation: btn-pulse 1.5s ease-in-out infinite;
+}
+
+.mini-widget-btn {
+  background: none;
+  border: none;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 28px;
+  color: inherit;
+}
+.mini-widget-btn img {
+  pointer-events: none;
+}
+
 
 /* ─── Transparent window reset ────────────────────────────────────────── */
 body {
   background: transparent !important;
+}
+
+/* ─── Scrollbar Customization ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 @keyframes app-enter {
@@ -338,8 +410,64 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 16px;
   margin-top: auto;
   padding-bottom: 8px;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--text);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-copy {
+  background: rgba(124, 106, 247, 0.15);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-copy:hover:not(:disabled) {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-copy:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.btn-copy.success {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
 }
 
 .btn-mic {
