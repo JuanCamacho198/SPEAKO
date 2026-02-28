@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { TranscriptOutput } from "./components/TextInput";
 import { RecognitionControls } from "./components/VoiceControls";
 import { SpeechEngine, isSTTSupported } from "./components/SpeechEngine";
@@ -12,9 +13,11 @@ export default function App() {
   const [isListening, setIsListening] = useState(false);
   // Default language for STT
   const [lang, setLang] = useState("es-MX");
-  const [continuous, setContinuous] = useState(false);
+  const [continuous, setContinuous] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [copied, setCopied] = useState(false);
 
   const engineRef = useRef<SpeechEngine | null>(null);
   // Track if user manually stopped listening (to distinguish from auto-end in continuous mode)
@@ -82,7 +85,12 @@ export default function App() {
 
   function handleCopy() {
     if (transcript.trim()) {
-      navigator.clipboard.writeText(transcript).catch(() => {});
+      navigator.clipboard.writeText(transcript)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch(() => {});
     }
   }
 
@@ -99,7 +107,16 @@ export default function App() {
   return (
     <div className="app" data-tauri-drag-region>
       {/* Titlebar */}
-      <div className="titlebar" data-tauri-drag-region>
+      <div 
+        className="titlebar" 
+        data-tauri-drag-region 
+        onPointerDown={(e) => {
+          // Avoid dragging if a button inside the titlebar was clicked
+          if ((e.target as HTMLElement).tagName.toLowerCase() !== 'button') {
+            getCurrentWindow().startDragging();
+          }
+        }}
+      >
         <div className="titlebar-left" data-tauri-drag-region>
           <img src={logoUrl} className="titlebar-logo" alt="" />
           <span className="titlebar-title" data-tauri-drag-region>
@@ -115,12 +132,12 @@ export default function App() {
             ⚙
           </button>
           <button
-            className="icon-btn"
+            className={`icon-btn${copied ? " text-success" : ""}`}
             title="Copiar texto"
             onClick={handleCopy}
             disabled={!transcript.trim()}
           >
-            ⎘
+            {copied ? "✓" : "⎘"}
           </button>
           <button
             className="icon-btn"

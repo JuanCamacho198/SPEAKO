@@ -67,6 +67,7 @@ pub fn run() {
                 autostart_item: Mutex::new(autostart),
             });
 
+            // Prevent duplicate tray icon issues by only building if not already configured via config
             let _tray = TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)

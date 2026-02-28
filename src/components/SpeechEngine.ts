@@ -72,6 +72,12 @@ export class SpeechEngine {
     };
 
     rec.onerror = (event: SpeechRecognitionErrorEvent) => {
+      // In continuous mode, Chrome will pause after a period of silence and throw no-speech.
+      // We ignore it so it doesn't flash an error, and let the onend handler seamlessly restart it.
+      if (event.error === "no-speech" && this.options.continuous) {
+        return;
+      }
+
       const msg =
         event.error === "not-allowed"
           ? "Permiso de micrófono denegado."
