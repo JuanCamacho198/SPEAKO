@@ -198,33 +198,16 @@ export default function App() {
           />
         </div>
 
-        {/* Action buttons */}
+        {/* Minimalist Action Button */}
         <div className="actions">
           <button
-            className={`btn btn-primary${isListening ? " btn--listening" : ""}`}
+            className={`btn-mic${isListening ? " btn-mic--listening" : ""}`}
             onClick={isListening ? stopListening : startListening}
+            title={isListening ? "Detener grabación" : "Iniciar grabación"}
           >
-            {isListening ? (
-              <span className="btn-listening-label">
-                <span className="dot" />
-                Detener
-              </span>
-            ) : (
-              "🎤 Grabar"
-            )}
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={handleClear}
-            disabled={!transcript && !isListening}
-          >
-            Limpiar
+            {isListening ? "⏹" : "🎤"}
           </button>
         </div>
-
-        <p className="hint">
-          {isListening ? "Habla claramente hacia el micrófono" : "Pulsa Grabar para empezar"}
-        </p>
       </div>
     </div>
   );
