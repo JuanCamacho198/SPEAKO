@@ -54,9 +54,17 @@ export default function App() {
       {
         onInterim: (text) => setInterim(text),
         onFinal: (text) => {
+          // Remove trailing period to prevent excessive punctuation on auto-restarts
+          let cleanText = text.trim();
+          if (cleanText.endsWith('.')) {
+            cleanText = cleanText.slice(0, -1);
+          }
+
           setTranscript((prev) => {
             const separator = prev.length > 0 && !prev.endsWith(" ") ? " " : "";
-            return prev + separator + text;
+            // Ensure the first letter of the new chunk is lowercased if we just stripped a dot
+            // and we are appending to an existing sentence. But it's simpler to just append.
+            return prev + separator + cleanText;
           });
           setInterim("");
         },
@@ -66,13 +74,13 @@ export default function App() {
           setInterim("");
         },
         onEnd: () => {
-          // End of recognition cycle
-          setIsListening(false);
           setInterim("");
           // If continuous mode isEnabled, restart automatically unless user stopped explicitly
           if (continuous && !manualStopRef.current) {
             engineRef.current?.start();
-            setIsListening(true);
+            // Don't set isListening(false) here so UI doesn't flicker
+          } else {
+            setIsListening(false);
           }
         },
       }
@@ -116,23 +124,29 @@ export default function App() {
   async function toggleMiniMode() {
     const win = getCurrentWindow();
     if (!isMiniMode) {
+      await win.setResizable(true);
       // Resize to a small square for the widget
       await win.setSize(new LogicalSize(70, 70));
+      await win.setResizable(false);
+      await win.setSkipTaskbar(true);
       setIsMiniMode(true);
     } else {
+      await win.setResizable(true);
       // Restore original size
       await win.setSize(new LogicalSize(380, 420));
+      await win.setResizable(false);
+      await win.setSkipTaskbar(false);
       setIsMiniMode(false);
     }
   }
 
-  // Handle generic app drag
-  const handleAppDrag = (e: React.PointerEvent) => {
+  const startWindowDrag = (e: React.MouseEvent) => {
+    // Only drag on left click, and not if a button or input is clicked
+    if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    const isInteractive = ['button', 'textarea', 'input', 'select', 'option'].includes(target.tagName.toLowerCase());
-    if (!isInteractive) {
-      getCurrentWindow().startDragging();
-    }
+    if (target.closest('button, input, textarea, select')) return;
+    
+    getCurrentWindow().startDragging();
   };
 
   // Waveform bar heights — animated while listening
@@ -145,7 +159,8 @@ export default function App() {
     return (
       <div 
         className={`app mini-mode ${isListening ? 'listening' : ''}`}
-        onPointerDown={handleAppDrag}
+        onMouseDown={startWindowDrag}
+        data-tauri-drag-region
       >
         <button 
           className="mini-widget-btn" 
@@ -159,12 +174,12 @@ export default function App() {
   }
 
   return (
-    <div className="app" onPointerDown={handleAppDrag}>
+    <div className="app" onMouseDown={startWindowDrag} data-tauri-drag-region>
       {/* Titlebar */}
-      <div className="titlebar">
-        <div className="titlebar-left">
+      <div className="titlebar" onMouseDown={startWindowDrag} data-tauri-drag-region>
+        <div className="titlebar-left" data-tauri-drag-region>
           <img src="/logo.png" className="titlebar-logo" style={{borderRadius: '50%'}} alt="" />
-          <span className="titlebar-title">
+          <span className="titlebar-title" data-tauri-drag-region>
             Speako
           </span>
         </div>

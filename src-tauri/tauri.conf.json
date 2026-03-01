@@ -16,14 +16,12 @@
         "title": "Speako",
         "width": 380,
         "height": 420,
-        "resizable": false,
+        "resizable": true,
         "decorations": false,
         "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "visible": false,
-        "center": false,
-        "x": 100,
-        "y": 100,
+        "skipTaskbar": false,
+        "visible": true,
+        "center": true,
         "transparent": true,
         "shadow": true
       }
