@@ -45,6 +45,7 @@ body,
   user-select: none;
   animation: app-enter 0.25s var(--ease) both;
   transition: all 0.3s var(--ease);
+  cursor: move; /* Muestra icono de mover en todo el fondo vacío */
 }
 
 /* ─── Mini Mode ──────────────────────────────────────────────────────── */
@@ -55,7 +56,7 @@ body,
   justify-content: center;
   align-items: center;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-  cursor: pointer;
+  cursor: move; /* Icono de mover */
 }
 
 .mini-widget {
@@ -218,6 +219,7 @@ body {
   padding: 16px;
   flex: 1;
   overflow-y: auto;
+  cursor: default; /* Restaurar cursor dentro de la app */
 }
 
 /* ─── Transcript output ──────────────────────────────────────────────── */

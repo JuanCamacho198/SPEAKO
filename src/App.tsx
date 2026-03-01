@@ -23,14 +23,14 @@ export default function App() {
   // Track if user manually stopped listening (to distinguish from auto-end in continuous mode)
   const manualStopRef = useRef(false);
 
-  // Auto-minimize after 10 seconds of inactivity (empty text and not listening)
+  // Auto-minimize after 30 seconds of inactivity (empty text and not listening)
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
 
     if (!isListening && !transcript.trim() && !isMiniMode) {
       timeoutId = setTimeout(() => {
         toggleMiniMode();
-      }, 15000); // 15 seconds
+      }, 30000); // 30 seconds
     }
 
     return () => {
@@ -140,13 +140,15 @@ export default function App() {
     }
   }
 
-  const startWindowDrag = (e: React.MouseEvent) => {
-    // Only drag on left click, and not if a button or input is clicked
-    if (e.button !== 0) return;
+  const startWindowDrag = (e: React.MouseEvent | React.PointerEvent) => {
+    // Only drag on left click
+    if ('button' in e && e.button !== 0) return;
     const target = e.target as HTMLElement;
+    // Don't drag if clicking interactive elements
     if (target.closest('button, input, textarea, select')) return;
     
-    getCurrentWindow().startDragging();
+    // In Tauri 2, startDragging handles the window movement
+    getCurrentWindow().startDragging().catch(console.error);
   };
 
   // Waveform bar heights — animated while listening
@@ -159,8 +161,7 @@ export default function App() {
     return (
       <div 
         className={`app mini-mode ${isListening ? 'listening' : ''}`}
-        onMouseDown={startWindowDrag}
-        data-tauri-drag-region
+        onPointerDown={startWindowDrag}
       >
         <button 
           className="mini-widget-btn" 
@@ -174,12 +175,12 @@ export default function App() {
   }
 
   return (
-    <div className="app" onMouseDown={startWindowDrag} data-tauri-drag-region>
+    <div className="app" onPointerDown={startWindowDrag}>
       {/* Titlebar */}
-      <div className="titlebar" onMouseDown={startWindowDrag} data-tauri-drag-region>
-        <div className="titlebar-left" data-tauri-drag-region>
+      <div className="titlebar" onPointerDown={startWindowDrag}>
+        <div className="titlebar-left">
           <img src="/logo.png" className="titlebar-logo" style={{borderRadius: '50%'}} alt="" />
-          <span className="titlebar-title" data-tauri-drag-region>
+          <span className="titlebar-title">
             Speako
           </span>
         </div>
