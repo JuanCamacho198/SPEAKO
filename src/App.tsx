@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow, LogicalSize, PhysicalPosition } from "@tauri-apps/api/window";
+import { getCurrentWindow, LogicalSize, PhysicalPosition, currentMonitor } from "@tauri-apps/api/window";
 import { TranscriptOutput } from "./components/TextInput";
 import { RecognitionControls } from "./components/VoiceControls";
 import { SpeechEngine, isSTTSupported } from "./components/SpeechEngine";
@@ -139,7 +139,7 @@ export default function App() {
       await win.setResizable(true);
       
       try {
-        const monitor = await win.currentMonitor();
+        const monitor = await currentMonitor();
         if (monitor) {
           const scaleFactor = monitor.scaleFactor;
           const pos = await win.outerPosition(); 
