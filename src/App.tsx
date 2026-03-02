@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import { getCurrentWindow, LogicalSize, PhysicalPosition } from "@tauri-apps/api/window";
 import { TranscriptOutput } from "./components/TextInput";
 import { RecognitionControls } from "./components/VoiceControls";
 import { SpeechEngine, isSTTSupported } from "./components/SpeechEngine";
@@ -121,10 +121,15 @@ export default function App() {
     invoke("hide_window").catch(() => {});
   }
 
+  function handleExit() {
+    invoke("exit_app").catch(() => {});
+  }
+
   async function toggleMiniMode() {
     const win = getCurrentWindow();
     if (!isMiniMode) {
       await win.setResizable(true);
+      await win.setShadow(false); // remove the OS shadow box for a clean circle
       // Resize to a small square for the widget
       await win.setSize(new LogicalSize(70, 70));
       await win.setResizable(false);
@@ -132,8 +137,40 @@ export default function App() {
       setIsMiniMode(true);
     } else {
       await win.setResizable(true);
+      
+      try {
+        const monitor = await win.currentMonitor();
+        if (monitor) {
+          const scaleFactor = monitor.scaleFactor;
+          const pos = await win.outerPosition(); 
+          
+          const width = 380 * scaleFactor;
+          const height = 420 * scaleFactor;
+          
+          let newX = pos.x;
+          let newY = pos.y;
+
+          if (pos.x + width > monitor.position.x + monitor.size.width) {
+            newX = monitor.position.x + monitor.size.width - width;
+          }
+          if (pos.y + height > monitor.position.y + monitor.size.height) {
+            newY = monitor.position.y + monitor.size.height - height;
+          }
+
+          if (newX < monitor.position.x) newX = monitor.position.x;
+          if (newY < monitor.position.y) newY = monitor.position.y;
+
+          if (newX !== pos.x || newY !== pos.y) {
+            await win.setPosition(new PhysicalPosition(newX, newY));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to constrain window position", e);
+      }
+
       // Restore original size
       await win.setSize(new LogicalSize(380, 420));
+      await win.setShadow(true);
       await win.setResizable(false);
       await win.setSkipTaskbar(false);
       setIsMiniMode(false);
