@@ -140,17 +140,6 @@ export default function App() {
     }
   }
 
-  const startWindowDrag = (e: React.MouseEvent | React.PointerEvent) => {
-    // Only drag on left click
-    if ('button' in e && e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    // Don't drag if clicking interactive elements
-    if (target.closest('button, input, textarea, select')) return;
-    
-    // In Tauri 2, startDragging handles the window movement
-    getCurrentWindow().startDragging().catch(console.error);
-  };
-
   // Waveform bar heights — animated while listening
   const bars = isListening
     ? [0.4, 0.7, 1, 0.6, 1, 0.7, 0.4]
@@ -161,7 +150,7 @@ export default function App() {
     return (
       <div 
         className={`app mini-mode ${isListening ? 'listening' : ''}`}
-        onPointerDown={startWindowDrag}
+        data-tauri-drag-region
       >
         <button 
           className="mini-widget-btn" 
@@ -175,12 +164,12 @@ export default function App() {
   }
 
   return (
-    <div className="app" onPointerDown={startWindowDrag}>
+    <div className="app" data-tauri-drag-region>
       {/* Titlebar */}
-      <div className="titlebar" onPointerDown={startWindowDrag}>
-        <div className="titlebar-left">
-          <img src="/logo.png" className="titlebar-logo" style={{borderRadius: '50%'}} alt="" />
-          <span className="titlebar-title">
+      <div className="titlebar" data-tauri-drag-region>
+        <div className="titlebar-left" data-tauri-drag-region>
+          <img src="/logo.png" className="titlebar-logo" style={{borderRadius: '50%'}} alt="" data-tauri-drag-region />
+          <span className="titlebar-title" data-tauri-drag-region>
             Speako
           </span>
         </div>
