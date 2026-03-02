@@ -31,11 +31,12 @@ Designed for seamless workflow integration, Speako features a completely framele
 
 ## :sparkles: Features
 
-*   **Frameless & Draggable**: A beautifully minimal, borderless window. Just click anywhere on the app background to drag it around your screen.
-*   **Mini Widget Mode**: After 30 seconds of inactivity, Speako intelligently shrinks into a tiny 70x70 floating bubble. Hover over it or click to instantly expand back to full size.
+*   **Frameless & Draggable**: A beautifully minimal, borderless window. Just click and drag anywhere on the app background or titlebar to move it around your screen.
+*   **Smart Mini Widget Mode**: After 30 seconds of inactivity (or by clicking the widget button), Speako intelligently shrinks into a tiny circular floating bubble without any annoying shadows. Double-click the widget to instantly expand back to full size.
+*   **Auto-Positioning**: If you expand the Mini Widget near the edge of your screen, Speako automatically calculates the monitor bounds and shifts itself inward so it never gets cut off!
 *   **Always on Top**: Keeps your transcription perfectly in view over other windows without getting in the way.
-*   **Flawless Continuous Dictation**: Built-in logic seamlessly restarts the speech engine during long pauses, automatically stripping out the unwanted trailing periods (`.`) injected by Windows WebView2, ensuring a fluent transcription experience.
-*   **System Tray Integration**: Operates completely hidden from your taskbar. Left-click the tray icon to toggle visibility; right-click for quick settings like "Start with Windows".
+*   **Flawless Continuous Dictation**: Built-in logic seamlessly restarts the speech engine during long pauses, automatically stripping out unwanted trailing periods (`.`) injected by Windows WebView2, ensuring a fluent transcription experience.
+*   **System Tray Integration**: Operates completely hidden from your taskbar. Left-click the tray icon to toggle visibility; right-click for quick settings like "Start with Windows". Full control buttons (`—` to hide, `✕` to fully exit) are also available on the app header.
 *   **Real-time Interim Results**: Watch your words appear on screen as you speak, with an animated visualizer showing microphone activity.
 *   **Multi-Language Support**: Instantly switch between English, Spanish, French, German, Portuguese, and more.
 
@@ -86,8 +87,9 @@ You can find the generated installers in `src-tauri/target/release/bundle/`.
 2. **Open**: Left-click the tray icon (or use the autostart feature) to reveal the app.
 3. **Record**: Click the **Mic** button to start dictating. Text appears instantly.
 4. **Edit & Copy**: Freely edit the transcribed text. Click the **Copy** (⎘) icon to send it to your clipboard.
-5. **Mini Widget**: Stop interacting for 30 seconds, and Speako will gracefully shrink into a floating bubble to save screen real estate.
-6. **Drag**: Click anywhere in the empty space of the window to move it around your monitors.
+5. **Mini Widget**: Stop interacting for 30 seconds, and Speako will gracefully shrink into a floating circular bubble. You can also manually trigger this via the `↙` button in the header.
+6. **Expand Widget**: **Double-click** the floating widget to restore its full size.
+7. **Drag**: Click anywhere in the empty space of the window to move it around your monitors.
 
 ---
 
