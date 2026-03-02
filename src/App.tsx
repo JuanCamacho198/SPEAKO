@@ -188,14 +188,12 @@ export default function App() {
       <div 
         className={`app mini-mode ${isListening ? 'listening' : ''}`}
         data-tauri-drag-region
+        onDoubleClick={toggleMiniMode}
+        title="Doble clic para expandir"
       >
-        <button 
-          className="mini-widget-btn" 
-          onClick={toggleMiniMode}
-          title="Expandir"
-        >
-          {isListening ? "🎤" : <img src="/logo.png" width={32} alt="logo" style={{borderRadius: '50%'}} />}
-        </button>
+        <div className="mini-widget-content" data-tauri-drag-region>
+          {isListening ? "🎤" : <img src="/logo.png" width={32} alt="logo" style={{borderRadius: '50%', pointerEvents: 'none'}} />}
+        </div>
       </div>
     );
   }
@@ -226,11 +224,18 @@ export default function App() {
             ↙
           </button>
           <button
-            className="icon-btn close-btn" 
+            className="icon-btn" 
             onClick={handleClose} 
             title="Ocultar a la bandeja"
           >
             —
+          </button>
+          <button
+            className="icon-btn close-btn" 
+            onClick={handleExit} 
+            title="Cerrar completamente"
+          >
+            ✕
           </button>
         </div>
       </div>

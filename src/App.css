@@ -55,45 +55,27 @@ body,
   background: var(--bg-surface);
   justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow: none; /* Shadow is handled by OS normally, removing CSS shadow for clean look */
   cursor: move; /* Icono de mover */
 }
 
-.mini-widget {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  font-size: 24px;
-  color: var(--accent);
-  transition: transform 0.2s var(--ease);
-}
-
-.mini-widget:hover {
-  transform: scale(1.1);
-}
-
-.mini-widget.listening {
+.app.mini-mode.listening {
   background: linear-gradient(135deg, #5a4fd4, #7c6af7);
   color: white;
-  border-radius: 50%;
   animation: btn-pulse 1.5s ease-in-out infinite;
 }
 
-.mini-widget-btn {
-  background: none;
-  border: none;
-  width: 100%;
-  height: 100%;
+.mini-widget-content {
   display: flex;
   justify-content: center;
   align-items: center;
-  cursor: pointer;
+  width: 100%;
+  height: 100%;
   font-size: 28px;
   color: inherit;
+  pointer-events: none;
 }
-.mini-widget-btn img {
+.mini-widget-content img {
   pointer-events: none;
 }
 
