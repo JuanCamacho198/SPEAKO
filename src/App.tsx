@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow, LogicalSize, PhysicalPosition, currentMonitor } from "@tauri-apps/api/window";
+import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 import { TranscriptOutput } from "./components/TextInput";
 import { RecognitionControls } from "./components/VoiceControls";
 import { SpeechEngine, isSTTSupported } from "./components/SpeechEngine";
@@ -38,6 +39,45 @@ export default function App() {
     };
   }, [isListening, transcript, isMiniMode]);
 
+  // Handle global shortcut
+  const isListeningRef = useRef(isListening);
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
+
+  const startListeningRef = useRef<() => void>(() => {});
+  const stopListeningRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    const shortcut = "CommandOrControl+Shift+Space";
+    let registered = false;
+
+    const setupShortcut = async () => {
+      try {
+        await register(shortcut, (event) => {
+          if (event.state === "Pressed") {
+            if (isListeningRef.current) {
+              stopListeningRef.current();
+            } else {
+              startListeningRef.current();
+            }
+          }
+        });
+        registered = true;
+      } catch (err) {
+        console.warn("Failed to register global shortcut", err);
+      }
+    };
+
+    setupShortcut();
+
+    return () => {
+      if (registered) {
+        unregister(shortcut).catch(err => console.warn("Failed to unregister shortcut", err));
+      }
+    };
+  }, []);
+
   const startListening = useCallback(() => {
     // Reset manual stop flag for a fresh run
     manualStopRef.current = false;
@@ -50,7 +90,7 @@ export default function App() {
     setInterim("");
 
     const engine = new SpeechEngine(
-      { lang, continuous, interimResults: true },
+      { lang, continuous, interimResults: true, silenceTimeoutMs: 3000 },
       {
         onInterim: (text) => setInterim(text),
         onFinal: (text) => {
@@ -75,13 +115,7 @@ export default function App() {
         },
         onEnd: () => {
           setInterim("");
-          // If continuous mode isEnabled, restart automatically unless user stopped explicitly
-          if (continuous && !manualStopRef.current) {
-            engineRef.current?.start();
-            // Don't set isListening(false) here so UI doesn't flicker
-          } else {
-            setIsListening(false);
-          }
+          setIsListening(false);
         },
       }
     );

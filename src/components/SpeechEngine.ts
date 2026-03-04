@@ -5,6 +5,7 @@ export interface RecognitionOptions {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
+  silenceTimeoutMs?: number;
 }
 
 export interface RecognitionCallbacks {
@@ -33,10 +34,26 @@ export class SpeechEngine {
   private options: RecognitionOptions;
   private callbacks: RecognitionCallbacks;
   private running = false;
+  private silenceTimer: number | null = null;
 
   constructor(options: RecognitionOptions, callbacks: RecognitionCallbacks) {
     this.options = options;
     this.callbacks = callbacks;
+  }
+
+  private clearSilenceTimer() {
+    if (this.silenceTimer !== null) {
+      window.clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
+    }
+  }
+
+  private resetSilenceTimer() {
+    this.clearSilenceTimer();
+    const timeout = this.options.silenceTimeoutMs ?? 3000;
+    this.silenceTimer = window.setTimeout(() => {
+      this.stop();
+    }, timeout);
   }
 
   start() {
@@ -55,6 +72,7 @@ export class SpeechEngine {
     rec.maxAlternatives = 1;
 
     rec.onresult = (event: SpeechRecognitionEvent) => {
+      this.resetSilenceTimer();
       let interim = "";
       let finalText = "";
 
@@ -72,11 +90,7 @@ export class SpeechEngine {
     };
 
     rec.onerror = (event: SpeechRecognitionErrorEvent) => {
-      // In continuous mode, Chrome will pause after a period of silence and throw no-speech.
-      // We ignore it so it doesn't flash an error, and let the onend handler seamlessly restart it.
-      if (event.error === "no-speech" && this.options.continuous) {
-        return;
-      }
+      this.clearSilenceTimer();
 
       const msg =
         event.error === "not-allowed"
@@ -89,6 +103,7 @@ export class SpeechEngine {
     };
 
     rec.onend = () => {
+      this.clearSilenceTimer();
       this.running = false;
       this.callbacks.onEnd();
     };
@@ -96,15 +111,18 @@ export class SpeechEngine {
     this.recognition = rec;
     this.running = true;
     rec.start();
+    this.resetSilenceTimer();
   }
 
   stop() {
+    this.clearSilenceTimer();
     if (this.recognition && this.running) {
       this.recognition.stop();
     }
   }
 
   abort() {
+    this.clearSilenceTimer();
     if (this.recognition) {
       this.recognition.abort();
       this.running = false;
