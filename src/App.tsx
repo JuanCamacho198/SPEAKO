@@ -133,6 +133,11 @@ export default function App() {
     setInterim("");
   }, []);
 
+  useEffect(() => {
+    startListeningRef.current = startListening;
+    stopListeningRef.current = stopListening;
+  }, [startListening, stopListening]);
+
   function handleClear() {
     stopListening();
     setTranscript("");
