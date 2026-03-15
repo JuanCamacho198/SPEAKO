@@ -1,3 +1,6 @@
+import { PunctuationConfig, DEFAULT_PUNCTUATION_CONFIG } from '../utils/punctuation.config';
+import { processPunctuation } from '../utils/punctuation';
+
 // Web Speech API — SpeechRecognition (Speech-to-Text)
 // Works in Chromium-based WebViews (Tauri uses WebView2 on Windows).
 
@@ -6,6 +9,7 @@ export interface RecognitionOptions {
   continuous: boolean;
   interimResults: boolean;
   silenceTimeoutMs?: number;
+  punctuation?: PunctuationConfig;
 }
 
 export interface RecognitionCallbacks {
@@ -35,10 +39,12 @@ export class SpeechEngine {
   private callbacks: RecognitionCallbacks;
   private running = false;
   private silenceTimer: number | null = null;
+  private punctuationConfig: PunctuationConfig;
 
   constructor(options: RecognitionOptions, callbacks: RecognitionCallbacks) {
     this.options = options;
     this.callbacks = callbacks;
+    this.punctuationConfig = options.punctuation ?? DEFAULT_PUNCTUATION_CONFIG;
   }
 
   private clearSilenceTimer() {
@@ -86,7 +92,20 @@ export class SpeechEngine {
       }
 
       if (interim) this.callbacks.onInterim(interim);
-      if (finalText) this.callbacks.onFinal(finalText);
+      if (finalText) {
+        let punctuatedText = finalText;
+        if (this.punctuationConfig.enabled) {
+          try {
+            punctuatedText = processPunctuation(
+              { text: finalText, lang: this.options.lang },
+              this.punctuationConfig
+            );
+          } catch {
+            punctuatedText = finalText;
+          }
+        }
+        this.callbacks.onFinal(punctuatedText);
+      }
     };
 
     rec.onerror = (event: SpeechRecognitionErrorEvent) => {
