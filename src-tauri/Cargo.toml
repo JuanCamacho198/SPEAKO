@@ -1,6 +1,6 @@
 [package]
 name = "speako"
-version = "0.1.0"
+version = "1.1.0"
 description = "Speako - Text to Speech tray app"
 authors = ["you"]
 edition = "2021"
