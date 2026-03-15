@@ -93,7 +93,8 @@ export default function App() {
       { lang, continuous, interimResults: true, silenceTimeoutMs: 3000 },
       {
         onInterim: (text) => setInterim(text),
-        onFinal: (text) => {
+        onFinal: (result) => {
+          const text = typeof result === 'string' ? result : result.text;
           // Remove trailing period to prevent excessive punctuation on auto-restarts
           let cleanText = text.trim();
           if (cleanText.endsWith('.')) {
