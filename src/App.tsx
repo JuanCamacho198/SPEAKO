@@ -5,6 +5,11 @@ import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 import { TranscriptOutput } from "./components/TextInput";
 import { RecognitionControls } from "./components/VoiceControls";
 import { SpeechEngine, isSTTSupported } from "./components/SpeechEngine";
+import { LanguageIndicator } from "./components/LanguageIndicator";
+import { VocabularyManager } from "./components/VocabularyManager";
+import { useCustomVocabulary } from "./hooks/useCustomVocabulary";
+import { LanguageDetectionResult } from "./types/language-detection.types";
+import { DEFAULT_LANGUAGE_DETECTION_CONFIG } from "./utils/language-detection.config";
 import "./App.css";
 
 export default function App() {
@@ -16,6 +21,14 @@ export default function App() {
   const [continuous, setContinuous] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Language detection state
+  const [languageDetectionResult, setLanguageDetectionResult] = useState<LanguageDetectionResult | null>(null);
+  const [languageDetectionEnabled, setLanguageDetectionEnabled] = useState(true);
+
+  // Vocabulary state
+  const vocabulary = useCustomVocabulary();
+  const [vocabularyEnabled, setVocabularyEnabled] = useState(true);
 
   const [copied, setCopied] = useState(false);
   const [isMiniMode, setIsMiniMode] = useState(false);
@@ -88,9 +101,23 @@ export default function App() {
 
     setError(null);
     setInterim("");
+    setLanguageDetectionResult(null);
 
     const engine = new SpeechEngine(
-      { lang, continuous, interimResults: true, silenceTimeoutMs: 3000 },
+      { 
+        lang, 
+        continuous, 
+        interimResults: true, 
+        silenceTimeoutMs: 3000,
+        languageDetection: {
+          enabled: languageDetectionEnabled,
+          config: { ...DEFAULT_LANGUAGE_DETECTION_CONFIG, defaultLang: lang.startsWith('en') ? 'en' : 'es' }
+        },
+        vocabulary: {
+          enabled: vocabularyEnabled,
+          store: vocabulary.vocabulary
+        }
+      },
       {
         onInterim: (text) => setInterim(text),
         onFinal: (result) => {
@@ -107,6 +134,17 @@ export default function App() {
             // and we are appending to an existing sentence. But it's simpler to just append.
             return prev + separator + cleanText;
           });
+
+          // Update language detection result
+          if (typeof result === 'object' && result.language) {
+            setLanguageDetectionResult({
+              language: result.language,
+              confidence: result.confidence || 0.5,
+              segments: result.segments || [],
+              isCodeSwitched: result.isCodeSwitched || false
+            });
+          }
+
           setInterim("");
         },
         onError: (msg) => {
@@ -124,7 +162,7 @@ export default function App() {
     engineRef.current = engine;
     engine.start();
     setIsListening(true);
-  }, [lang, continuous]);
+  }, [lang, continuous, languageDetectionEnabled, vocabularyEnabled, vocabulary.vocabulary]);
 
   const stopListening = useCallback(() => {
     // Mark as manual stop to prevent auto-restart in onEnd
@@ -144,6 +182,7 @@ export default function App() {
     setTranscript("");
     setInterim("");
     setError(null);
+    setLanguageDetectionResult(null);
   }
 
   function handleCopy() {
@@ -323,6 +362,36 @@ export default function App() {
             }}
             onContinuousChange={setContinuous}
           />
+
+          {/* Language Detection Toggle */}
+          <div className="control-row">
+            <label>Detección de idioma</label>
+            <button
+              className={`toggle-btn${languageDetectionEnabled ? " toggle-btn--on" : ""}`}
+              onClick={() => setLanguageDetectionEnabled(!languageDetectionEnabled)}
+            >
+              {languageDetectionEnabled ? "ON" : "OFF"}
+            </button>
+          </div>
+
+          {/* Language Indicator */}
+          {languageDetectionEnabled && (
+            <LanguageIndicator result={languageDetectionResult} compact />
+          )}
+
+          {/* Vocabulary Toggle */}
+          <div className="control-row">
+            <label>Vocabulario personalizado</label>
+            <button
+              className={`toggle-btn${vocabularyEnabled ? " toggle-btn--on" : ""}`}
+              onClick={() => setVocabularyEnabled(!vocabularyEnabled)}
+            >
+              {vocabularyEnabled ? "ON" : "OFF"}
+            </button>
+          </div>
+
+          {/* Vocabulary Manager */}
+          <VocabularyManager collapsed />
         </div>
 
         {/* Bottom Actions */}
