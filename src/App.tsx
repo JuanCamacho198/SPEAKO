@@ -30,6 +30,9 @@ export default function App() {
   const vocabulary = useCustomVocabulary();
   const [vocabularyEnabled, setVocabularyEnabled] = useState(true);
 
+  // Buffering mode state
+  const [bufferingEnabled, setBufferingEnabled] = useState(false);
+
   const [copied, setCopied] = useState(false);
   const [isMiniMode, setIsMiniMode] = useState(false);
 
@@ -109,6 +112,7 @@ export default function App() {
         continuous, 
         interimResults: true, 
         silenceTimeoutMs: 3000,
+        bufferingEnabled,
         languageDetection: {
           enabled: languageDetectionEnabled,
           config: { ...DEFAULT_LANGUAGE_DETECTION_CONFIG, defaultLang: lang.startsWith('en') ? 'en' : 'es' }
@@ -162,7 +166,7 @@ export default function App() {
     engineRef.current = engine;
     engine.start();
     setIsListening(true);
-  }, [lang, continuous, languageDetectionEnabled, vocabularyEnabled, vocabulary.vocabulary]);
+  }, [lang, continuous, languageDetectionEnabled, vocabularyEnabled, vocabulary.vocabulary, bufferingEnabled]);
 
   const stopListening = useCallback(() => {
     // Mark as manual stop to prevent auto-restart in onEnd
@@ -387,6 +391,17 @@ export default function App() {
               onClick={() => setVocabularyEnabled(!vocabularyEnabled)}
             >
               {vocabularyEnabled ? "ON" : "OFF"}
+            </button>
+          </div>
+
+          {/* Buffering Mode Toggle */}
+          <div className="control-row">
+            <label>Modo buffering</label>
+            <button
+              className={`toggle-btn${bufferingEnabled ? " toggle-btn--on" : ""}`}
+              onClick={() => setBufferingEnabled(!bufferingEnabled)}
+            >
+              {bufferingEnabled ? "ON" : "OFF"}
             </button>
           </div>
 

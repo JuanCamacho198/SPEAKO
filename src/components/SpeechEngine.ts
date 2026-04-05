@@ -27,6 +27,7 @@ export interface RecognitionOptions {
   punctuation?: PunctuationConfig;
   languageDetection?: LanguageDetectionOptions;
   vocabulary?: VocabularyOptions;
+  bufferingEnabled?: boolean;
 }
 
 export interface TranscriptResult {
@@ -70,6 +71,9 @@ export class SpeechEngine {
   private languageDetectionEnabled: boolean;
   private vocabularyEnabled: boolean;
   private vocabularyStore: VocabularyStore | null = null;
+  private buffer: string[] = [];
+  private bufferingEnabled: boolean = false;
+  private silenceTimeoutMs: number = 3000;
 
   constructor(options: RecognitionOptions, callbacks: RecognitionCallbacks) {
     this.options = options;
@@ -78,9 +82,15 @@ export class SpeechEngine {
     this.languageDetectionConfig = options.languageDetection?.config ?? DEFAULT_LANGUAGE_DETECTION_CONFIG;
     this.languageDetectionEnabled = options.languageDetection?.enabled ?? false;
     this.vocabularyEnabled = options.vocabulary?.enabled ?? false;
+    this.bufferingEnabled = options.bufferingEnabled ?? false;
+    this.silenceTimeoutMs = options.silenceTimeoutMs ?? 3000;
     
     if (this.vocabularyEnabled && options.vocabulary?.store) {
       this.vocabularyStore = options.vocabulary.store;
+    }
+
+    if (this.bufferingEnabled) {
+      this.buffer = [];
     }
   }
 
@@ -93,10 +103,61 @@ export class SpeechEngine {
 
   private resetSilenceTimer() {
     this.clearSilenceTimer();
-    const timeout = this.options.silenceTimeoutMs ?? 3000;
     this.silenceTimer = window.setTimeout(() => {
+      if (this.bufferingEnabled) {
+        this.processBuffer();
+      }
       this.stop();
-    }, timeout);
+    }, this.silenceTimeoutMs);
+  }
+
+  private processBuffer() {
+    if (this.buffer.length === 0) return;
+
+    const fullText = this.buffer.join(' ');
+    this.buffer = [];
+
+    const detectionLang = this.languageDetectionConfig.defaultLang;
+    let detectedLanguage: string = detectionLang;
+    let confidence = 0.5;
+    let isCodeSwitched = false;
+    let segments: LanguageSegment[] = [];
+
+    if (this.languageDetectionEnabled) {
+      const detectionResult = detectLanguage(fullText, this.languageDetectionConfig);
+      detectedLanguage = detectionResult.language;
+      confidence = detectionResult.confidence;
+      isCodeSwitched = detectionResult.isCodeSwitched;
+      segments = detectionResult.segments;
+    }
+
+    let processedText = fullText;
+    if (this.punctuationConfig.enabled) {
+      try {
+        processedText = processPunctuation(
+          { text: fullText, lang: detectedLanguage, confidence },
+          this.punctuationConfig
+        );
+      } catch {
+        processedText = fullText;
+      }
+    }
+
+    let vocabularyBoost = 0;
+    if (this.vocabularyEnabled && this.vocabularyStore && (detectedLanguage === 'en' || detectedLanguage === 'es')) {
+      vocabularyBoost = getVocabularyBoost(fullText, detectedLanguage, this.vocabularyStore);
+    }
+
+    const result: TranscriptResult = {
+      text: processedText,
+      language: detectedLanguage,
+      confidence,
+      isCodeSwitched,
+      segments,
+      vocabularyBoost,
+    };
+
+    this.callbacks.onFinal(result);
   }
 
   start() {
@@ -128,50 +189,56 @@ export class SpeechEngine {
         }
       }
 
-      if (interim) this.callbacks.onInterim(interim);
-      if (finalText) {
-        let punctuatedText = finalText;
-        const detectionLang = this.languageDetectionConfig.defaultLang;
-        
-        let detectedLanguage: string = detectionLang;
-        let confidence = 0.5;
-        let isCodeSwitched = false;
-        let segments: LanguageSegment[] = [];
-        
-        if (this.languageDetectionEnabled) {
-          const detectionResult = detectLanguage(finalText, this.languageDetectionConfig);
-          detectedLanguage = detectionResult.language;
-          confidence = detectionResult.confidence;
-          isCodeSwitched = detectionResult.isCodeSwitched;
-          segments = detectionResult.segments;
+      if (this.bufferingEnabled) {
+        if (finalText) {
+          this.buffer.push(finalText.trim());
         }
-        
-        if (this.punctuationConfig.enabled) {
-          try {
-            punctuatedText = processPunctuation(
-              { text: finalText, lang: detectedLanguage, confidence },
-              this.punctuationConfig
-            );
-          } catch {
-            punctuatedText = finalText;
+      } else {
+        if (interim) this.callbacks.onInterim(interim);
+        if (finalText) {
+          let punctuatedText = finalText;
+          const detectionLang = this.languageDetectionConfig.defaultLang;
+          
+          let detectedLanguage: string = detectionLang;
+          let confidence = 0.5;
+          let isCodeSwitched = false;
+          let segments: LanguageSegment[] = [];
+          
+          if (this.languageDetectionEnabled) {
+            const detectionResult = detectLanguage(finalText, this.languageDetectionConfig);
+            detectedLanguage = detectionResult.language;
+            confidence = detectionResult.confidence;
+            isCodeSwitched = detectionResult.isCodeSwitched;
+            segments = detectionResult.segments;
           }
+          
+          if (this.punctuationConfig.enabled) {
+            try {
+              punctuatedText = processPunctuation(
+                { text: finalText, lang: detectedLanguage, confidence },
+                this.punctuationConfig
+              );
+            } catch {
+              punctuatedText = finalText;
+            }
+          }
+          
+          let vocabularyBoost = 0;
+          if (this.vocabularyEnabled && this.vocabularyStore && (detectedLanguage === 'en' || detectedLanguage === 'es')) {
+            vocabularyBoost = getVocabularyBoost(finalText, detectedLanguage, this.vocabularyStore);
+          }
+          
+          const result: TranscriptResult = {
+            text: punctuatedText,
+            language: detectedLanguage,
+            confidence,
+            isCodeSwitched,
+            segments,
+            vocabularyBoost,
+          };
+          
+          this.callbacks.onFinal(result);
         }
-        
-        let vocabularyBoost = 0;
-        if (this.vocabularyEnabled && this.vocabularyStore && (detectedLanguage === 'en' || detectedLanguage === 'es')) {
-          vocabularyBoost = getVocabularyBoost(finalText, detectedLanguage, this.vocabularyStore);
-        }
-        
-        const result: TranscriptResult = {
-          text: punctuatedText,
-          language: detectedLanguage,
-          confidence,
-          isCodeSwitched,
-          segments,
-          vocabularyBoost,
-        };
-        
-        this.callbacks.onFinal(result);
       }
     };
 
@@ -190,6 +257,9 @@ export class SpeechEngine {
 
     rec.onend = () => {
       this.clearSilenceTimer();
+      if (this.bufferingEnabled && this.buffer.length > 0) {
+        this.processBuffer();
+      }
       this.running = false;
       this.callbacks.onEnd();
     };
