@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWindow, LogicalSize, PhysicalPosition, currentMonitor } from "@tauri-apps/api/window";
 import { register, unregister } from "@tauri-apps/plugin-global-shortcut";
 import { TranscriptOutput } from "./components/TextInput";
@@ -35,6 +36,7 @@ export default function App() {
 
   const [copied, setCopied] = useState(false);
   const [isMiniMode, setIsMiniMode] = useState(false);
+  const [version, setVersion] = useState<string>("");
 
   const engineRef = useRef<SpeechEngine | null>(null);
   // Track if user manually stopped listening (to distinguish from auto-end in continuous mode)
@@ -266,6 +268,13 @@ export default function App() {
     : [0.2, 0.3, 0.4, 0.3, 0.4, 0.3, 0.2];
   const BAR_MAX_H = 20;
 
+  // Fetch version on mount
+  useEffect(() => {
+    getVersion()
+      .then((v) => setVersion(v))
+      .catch(() => setVersion("1.0.0"));
+  }, []);
+
   if (isMiniMode) {
     return (
       <div 
@@ -407,6 +416,13 @@ export default function App() {
 
           {/* Vocabulary Manager */}
           <VocabularyManager collapsed />
+
+          {/* Version Display */}
+          {version && (
+            <div className="version-display">
+              v{version}
+            </div>
+          )}
         </div>
 
         {/* Bottom Actions */}

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-04-05
+
+### Fixed
+
+#### UI/UX Improvements
+- Fixed main layout clipping - microphone, "Limpiar", and "Copiar" buttons now always visible without scrolling
+- Reorganized settings panel with CSS Grid - labels no longer overlap with toggles
+- Added dynamic version display - shows current app version in settings panel (fetched via Tauri API)
+
 ## [1.2.0] - 2026-04-05
 
 ### Added

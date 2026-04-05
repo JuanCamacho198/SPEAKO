@@ -1,4 +1,11 @@
-/* ─── Reset & variables ──────────────────────────────────────────────── */
+/* ─── Version Display ───────────────────────────────────────────────── */
+.version-display {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
+  padding: 4px 0;
+  opacity: 0.7;
+}/* ─── Reset & variables ──────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -197,11 +204,19 @@ body {
 .content {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 12px;
   padding: 16px;
+  cursor: default;
+}
+
+.content-main {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  overflow-y: auto;
-  cursor: default; /* Restaurar cursor dentro de la app */
+  min-height: 0;
+  gap: 12px;
 }
 
 /* ─── Transcript output ──────────────────────────────────────────────── */
@@ -330,6 +345,29 @@ body {
   overflow: hidden;
 }
 
+/* Settings panel grid layout */
+.controls-panel--open .control-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.controls-panel--open .control-row:last-child {
+  border-bottom: none;
+}
+
+.controls-panel--open .control-row label {
+  width: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
 /* Voice controls inner */
 .voice-controls {
   display: flex;
@@ -393,8 +431,8 @@ body {
   justify-content: center;
   align-items: center;
   gap: 16px;
-  margin-top: auto;
-  padding-bottom: 8px;
+  flex-shrink: 0;
+  padding: 8px 0;
 }
 
 .btn-secondary {
