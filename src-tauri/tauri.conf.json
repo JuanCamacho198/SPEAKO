@@ -44,10 +44,12 @@
   },
   "plugins": {
     "updater": {
-      "active": false,
-      "dialog": false,
-      "endpoints": [],
-      "pubkey": ""
+      "active": true,
+      "dialog": true,
+      "endpoints": [
+        "https://github.com/JuanCamacho198/SPEAKO/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU2RDMwNkI2NUQ0ODUwNDIKUldSQ1VFaGR0Z2JUNXJTYUpSK2ZGRGlvV3hIeHRTMDcwT0Joa3puK3BsOHhHYkx3OU1kSlB0WU4K"
     }
   }
 }

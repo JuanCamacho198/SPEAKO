@@ -21,7 +21,9 @@ dist-ssr
 *.ntvs*
 *.njsproj
 *.sln
+*.env
 *.sw?
 .docs/
 
 openspec/
+.env.updater
