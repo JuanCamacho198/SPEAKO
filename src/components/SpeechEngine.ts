@@ -5,6 +5,7 @@ import { detectLanguage } from '../utils/language-detection';
 import { getVocabularyBoost } from '../utils/vocabulary-storage';
 import { VocabularyStore } from '../utils/custom-vocabulary.config';
 import { LanguageSegment } from '../types/language-detection.types';
+import { VoiceCommandOptions, applyVoiceCommands } from '../utils/voice-commands';
 
 export interface LanguageDetectionOptions {
   enabled: boolean;
@@ -27,6 +28,7 @@ export interface RecognitionOptions {
   punctuation?: PunctuationConfig;
   languageDetection?: LanguageDetectionOptions;
   vocabulary?: VocabularyOptions;
+  voiceCommands?: VoiceCommandOptions;
   bufferingEnabled?: boolean;
 }
 
@@ -71,6 +73,7 @@ export class SpeechEngine {
   private languageDetectionEnabled: boolean;
   private vocabularyEnabled: boolean;
   private vocabularyStore: VocabularyStore | null = null;
+  private voiceCommandOptions: VoiceCommandOptions | undefined;
   private buffer: string[] = [];
   private bufferingEnabled: boolean = false;
   private silenceTimeoutMs: number = 3000;
@@ -82,6 +85,7 @@ export class SpeechEngine {
     this.languageDetectionConfig = options.languageDetection?.config ?? DEFAULT_LANGUAGE_DETECTION_CONFIG;
     this.languageDetectionEnabled = options.languageDetection?.enabled ?? false;
     this.vocabularyEnabled = options.vocabulary?.enabled ?? false;
+    this.voiceCommandOptions = options.voiceCommands;
     this.bufferingEnabled = options.bufferingEnabled ?? false;
     this.silenceTimeoutMs = options.silenceTimeoutMs ?? 3000;
     
@@ -131,7 +135,7 @@ export class SpeechEngine {
       segments = detectionResult.segments;
     }
 
-    let processedText = fullText;
+    let processedText = applyVoiceCommands(fullText, this.voiceCommandOptions);
     if (this.punctuationConfig.enabled) {
       try {
         processedText = processPunctuation(
@@ -196,7 +200,7 @@ export class SpeechEngine {
       } else {
         if (interim) this.callbacks.onInterim(interim);
         if (finalText) {
-          let punctuatedText = finalText;
+          let processedText = applyVoiceCommands(finalText, this.voiceCommandOptions);
           const detectionLang = this.languageDetectionConfig.defaultLang;
           
           let detectedLanguage: string = detectionLang;
@@ -205,7 +209,7 @@ export class SpeechEngine {
           let segments: LanguageSegment[] = [];
           
           if (this.languageDetectionEnabled) {
-            const detectionResult = detectLanguage(finalText, this.languageDetectionConfig);
+             const detectionResult = detectLanguage(processedText, this.languageDetectionConfig);
             detectedLanguage = detectionResult.language;
             confidence = detectionResult.confidence;
             isCodeSwitched = detectionResult.isCodeSwitched;
@@ -214,25 +218,25 @@ export class SpeechEngine {
           
           if (this.punctuationConfig.enabled) {
             try {
-              punctuatedText = processPunctuation(
-                { text: finalText, lang: detectedLanguage, confidence },
-                this.punctuationConfig
-              );
-            } catch {
-              punctuatedText = finalText;
-            }
-          }
+               processedText = processPunctuation(
+                 { text: processedText, lang: detectedLanguage, confidence },
+                 this.punctuationConfig
+               );
+             } catch {
+               processedText = finalText;
+             }
+           }
           
           let vocabularyBoost = 0;
           if (this.vocabularyEnabled && this.vocabularyStore && (detectedLanguage === 'en' || detectedLanguage === 'es')) {
             vocabularyBoost = getVocabularyBoost(finalText, detectedLanguage, this.vocabularyStore);
           }
           
-          const result: TranscriptResult = {
-            text: punctuatedText,
-            language: detectedLanguage,
-            confidence,
-            isCodeSwitched,
+            const result: TranscriptResult = {
+              text: processedText,
+              language: detectedLanguage,
+              confidence,
+              isCodeSwitched,
             segments,
             vocabularyBoost,
           };

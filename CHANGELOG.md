@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-05
+
+### Added
+- Voice commands engine with support for default and custom commands, including per-command enable/disable controls.
+- History persistence with search support for previously captured entries.
+- Custom shortcut mappings with conflict detection and handling.
+- Logging infrastructure for app-level diagnostics and troubleshooting.
+- Auto-update UI flow for check/install actions; production endpoints and updater pubkey are still required for release builds.
+
+### Changed
+- Settings UI overhauled into a tabbed modal for clearer navigation and better organization.
+
+### Testing
+- 100 tests covering unit, integration, and release-critical flows.
+
 ## [1.2.1] - 2026-04-05
 
 ### Fixed
