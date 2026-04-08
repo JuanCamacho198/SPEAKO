@@ -516,6 +516,16 @@ export default function App() {
         </div>
         <div className="titlebar-actions">
           <button
+            className={`icon-btn${activeSettingsTab === "history" && showSettingsModal ? " active" : ""}`}
+            title="Ver historial"
+            onClick={() => {
+              setShowSettingsModal(true);
+              setActiveSettingsTab("history");
+            }}
+          >
+            ☰
+          </button>
+          <button
             className={`icon-btn${showSettingsModal ? " active" : ""}`}
             title="Abrir configuración"
             onClick={() => {
@@ -853,6 +863,9 @@ export default function App() {
             {copied ? "✓ ¡Copiado!" : "⎘ Copiar"}
           </button>
         </div>
+
+        {/* Version label */}
+        {version && <div className="version-label">v{version}</div>}
       </div>
     </div>
   );
